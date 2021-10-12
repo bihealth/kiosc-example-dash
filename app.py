@@ -9,6 +9,9 @@ from dash import dcc
 
 
 PUBLIC_URL_PREFIX = os.getenv("PUBLIC_URL_PREFIX", "")
+SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
+SERVER_PORT = int(os.getenv("SERVER_PORT", "8050"))
+DEBUG = {"1": True, "true": True}.get(os.getenv("DEBUG", "0").lower(), False)
 
 
 #: The Flask application to use.
@@ -64,5 +67,5 @@ def update_manhattanplot(threshold):
         genomewideline_value=threshold
     )
 
-if __name__ == '__main__':
-    app.run_server(host="0.0.0.0")
+if __name__ == "__main__":
+    app.run_server(host=SERVER_HOST, port=SERVER_PORT, debug=DEBUG)
