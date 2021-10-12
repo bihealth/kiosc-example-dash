@@ -1,99 +1,71 @@
+import os
+import pandas as pd
 import dash
-import dash_bio as dashbio
-import dash_core_components as dcc
-import dash_html_components as html
+import flask
 from dash.dependencies import Input, Output
+import dash_bio as dashbio
+from dash import html
+from dash import dcc
 
-app = dash.Dash(__name__)
 
-HOSTED_GENOME_DICT = [
-    {'value': 'mm10', 'label': 'Mouse (GRCm38/mm10)'},
-    {'value': 'hg19', 'label': 'Human (GRCh37/hg19)'}
-]
+PUBLIC_URL_PREFIX = os.getenv("PUBLIC_URL_PREFIX", "")
 
-HOSTED_GENOME_TRACKS = {
-    'mm10': {
-        'range': {
-            'contig': 'chr17',
-            'start': 7512284,
-            'stop': 7512644
-        },
-        'reference': {
-            'label': 'mm10',
-            'url': 'https://hgdownload.cse.ucsc.edu/goldenPath/mm10/bigZips/mm10.2bit'
-        },
-        'tracks': [
-            {
-                'viz': 'scale',
-                'label': 'Scale'
-            },
-            {
-                'viz': 'location',
-                'label': 'Location'
-            }]
-    },
-    'hg19': {
-        'range': {
-            'contig': 'chr17',
-            'start': 7512284,
-            'stop': 7512644
-        },
-        'reference': {
-            'label': 'hg19',
-            'url': 'https://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.2bit'
-        },
-        'tracks': [{
-            'viz': 'scale',
-            'label': 'Scale'
-        },
-            {
-                'viz': 'location',
-                'label': 'Location'
-            },
-            {
-                'viz': 'genes',
-                'label': 'genes',
-                'source': 'bigBed',
-                'sourceOptions': {'url': 'https://www.biodalliance.org/datasets/ensGene.bb'}
-            }]
-    }
-}
 
-app.layout = html.Div([
-    dcc.Loading(id='default-pileup-container'),
-    html.Hr(),
-    html.P('Select the genome to display below.'),
-    dcc.Dropdown(
-        id='default-pileup-genome-select',
-        options=HOSTED_GENOME_DICT,
-        value='hg19'
-    )
-])
+#: The Flask application to use.
+app_flask = flask.Flask(__name__)
+
+# Setup URL prefix for Flask.
+app_flask.config["APPLICATION_ROOT"] = "%s/" % PUBLIC_URL_PREFIX
+
+#: The Dash application to run.
+app = dash.Dash(
+    __name__,
+    # Use our specific Flask app
+    server=app_flask,
+    # # The visualization will be served below "/dash"
+    # routes_pathname_prefix="/dash/",
+    # requests_pathname_prefix="%s/dash/" % PUBLIC_URL_PREFIX,
+)
 
 server = app.server
 
-
-# Return the Pileup component with the selected genome.
-@app.callback(
-    Output('default-pileup-container', 'children'),
-    Input('default-pileup-genome-select', 'value')
+df = pd.read_csv(
+    'https://raw.githubusercontent.com/plotly/dash-bio-docs-files/master/' +
+    'manhattan_data.csv'
 )
-def return_pileup(genome):
-    if HOSTED_GENOME_TRACKS.get(genome) is None:
-        raise Exception("No tracks for genome %s" % genome)
 
-    return (
-        html.Div([
-            dashbio.Pileup(
-                id='pileup-default',
-                range=HOSTED_GENOME_TRACKS[genome]['range'],
-                reference=HOSTED_GENOME_TRACKS[genome]['reference'],
-                tracks=HOSTED_GENOME_TRACKS[genome]['tracks']
+app.layout = html.Div([
+    'Threshold value',
+    dcc.Slider(
+        id='default-manhattanplot-input',
+        min=1,
+        max=10,
+        marks={
+            i: {'label': str(i)} for i in range(10)
+        },
+        value=6
+    ),
+    html.Br(),
+    html.Div(
+        dcc.Graph(
+            id='default-dashbio-manhattanplot',
+            figure=dashbio.ManhattanPlot(
+                dataframe=df
             )
-        ])
+        )
     )
+])
 
+@app.callback(
+    Output('default-dashbio-manhattanplot', 'figure'),
+    Input('default-manhattanplot-input', 'value')
+)
+def update_manhattanplot(threshold):
+
+    return dashbio.ManhattanPlot(
+        dataframe=df,
+        genomewideline_value=threshold
+    )
 
 if __name__ == '__main__':
     app.run_server()
-
