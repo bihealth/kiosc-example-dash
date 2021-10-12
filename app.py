@@ -23,8 +23,8 @@ app = dash.Dash(
     # Use our specific Flask app
     server=app_flask,
     # # The visualization will be served below "/dash"
-    # routes_pathname_prefix="/dash/",
-    # requests_pathname_prefix="%s/dash/" % PUBLIC_URL_PREFIX,
+    routes_pathname_prefix="/dash/",
+    requests_pathname_prefix="%s/dash/" % PUBLIC_URL_PREFIX,
 )
 
 df = pd.read_csv(
