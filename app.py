@@ -27,8 +27,6 @@ app = dash.Dash(
     # requests_pathname_prefix="%s/dash/" % PUBLIC_URL_PREFIX,
 )
 
-server = app.server
-
 df = pd.read_csv(
     'https://raw.githubusercontent.com/plotly/dash-bio-docs-files/master/' +
     'manhattan_data.csv'
